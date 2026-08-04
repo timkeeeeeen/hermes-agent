@@ -97,6 +97,24 @@ class TestConfigYamlRouting:
         assert "gpt-4o" in config
         assert "model" not in _read_env(_isolated_hermes_home)
 
+    def test_config_command_json_writes_a_real_list(self, _isolated_hermes_home):
+        from hermes_cli.subcommands.config import build_config_parser
+
+        routes = [{"name": "project", "profile": "project"}]
+        parser = argparse.ArgumentParser()
+        build_config_parser(parser.add_subparsers(), cmd_config=config_command)
+        args = parser.parse_args([
+            "config", "set", "gateway.profile_routes", json.dumps(routes),
+            "--force", "--json",
+        ])
+
+        args.func(args)
+
+        import yaml
+        assert yaml.safe_load(_read_config(_isolated_hermes_home))["gateway"][
+            "profile_routes"
+        ] == routes
+
 
     def test_terminal_image_goes_to_config(self, _isolated_hermes_home):
         """TERMINAL_DOCKER_IMAGE doesn't match _API_KEY or _TOKEN, so config.yaml."""

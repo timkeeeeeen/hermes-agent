@@ -46,6 +46,11 @@ def build_config_parser(subparsers, *, cmd_config: Callable) -> None:
         help="Skip the unknown-key notice printed after writing a key the "
         "running version doesn't recognize (the value is saved either way).",
     )
+    config_set.add_argument(
+        "--json",
+        action="store_true",
+        help="Parse value as JSON before writing it.",
+    )
 
     # config unset
     config_unset = config_subparsers.add_parser(
