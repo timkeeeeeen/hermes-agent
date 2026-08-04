@@ -4820,7 +4820,9 @@ def _validate_config_key(key: str) -> tuple[bool, Optional[str]]:
     return True, None
 
 
-def set_config_value(key: str, value: str, force: bool = False):
+def set_config_value(
+    key: str, value: str, force: bool = False, *, parse_json: bool = False
+):
     """Set a configuration value.
 
     Args:
@@ -4900,8 +4902,15 @@ def set_config_value(key: str, value: str, force: bool = False):
     # Preserve values for string-typed settings.  In particular, enum members
     # such as approvals.mode="off" must not become YAML booleans.  Unknown keys
     # retain the historical best-effort coercion behavior.
-    coerced_value: Any = value
-    if not isinstance(_default_value_for_key(key), str):
+    if parse_json:
+        try:
+            coerced_value: Any = json.loads(value)
+        except json.JSONDecodeError as exc:
+            print(f"Invalid JSON value: {exc}", file=sys.stderr)
+            sys.exit(1)
+    else:
+        coerced_value = value
+    if not parse_json and not isinstance(_default_value_for_key(key), str):
         if value.lower() in {'true', 'yes', 'on'}:
             coerced_value = True
         elif value.lower() in {'false', 'no', 'off'}:
@@ -5165,7 +5174,12 @@ def config_command(args):
             print("  --force: skip the unknown-key notice for unrecognized keys,")
             print("           and allow a scalar to replace a whole mapping section")
             sys.exit(1)
-        set_config_value(key, value, force=force)
+        set_config_value(
+            key,
+            value,
+            force=force,
+            parse_json=bool(getattr(args, "json", False)),
+        )
 
     elif subcmd == "unset":
         key = getattr(args, 'key', None)
