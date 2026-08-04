@@ -23892,6 +23892,11 @@ class GatewayRunner(GatewayAuthorizationMixin, GatewayKanbanWatchersMixin, Gatew
 
         profile_home = self._resolve_profile_home_for_source(source)
         with _profile_runtime_scope(profile_home):
+            try:
+                from tools.mcp_tool import discover_mcp_tools
+                await asyncio.to_thread(discover_mcp_tools)
+            except Exception as exc:
+                logger.debug("Profile MCP tool discovery failed: %s", exc)
             return await self._run_agent_inner(
                 message, context_prompt, history, source, session_id,
                 session_key=session_key, run_generation=run_generation,
