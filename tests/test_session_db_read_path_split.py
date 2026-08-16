@@ -8,6 +8,7 @@ per-thread read-only connection under WAL, never touch self._lock, and fall
 back to the legacy locked path when WAL or the read connection is missing.
 """
 
+import sqlite3
 import threading
 
 import pytest
@@ -41,6 +42,31 @@ def test_read_conn_is_per_thread(db):
 
 def test_read_conn_reused_within_thread(db):
     assert db._get_read_conn() is db._get_read_conn()
+
+
+@pytest.mark.requires_wal
+def test_short_lived_reader_can_release_its_connection(db):
+    released = []
+    close_errors = []
+
+    def reader():
+        conn = db._get_read_conn()
+        assert conn is not None
+        db.release_current_thread_read_connection()
+        released.append(conn)
+        try:
+            conn.execute("SELECT 1")
+        except sqlite3.ProgrammingError as exc:
+            close_errors.append(str(exc))
+
+    thread = threading.Thread(target=reader)
+    thread.start()
+    thread.join()
+
+    assert len(released) == 1
+    assert released[0] not in db._read_conns
+    assert len(close_errors) == 1
+    assert "closed database" in close_errors[0]
 
 
 @pytest.mark.requires_wal

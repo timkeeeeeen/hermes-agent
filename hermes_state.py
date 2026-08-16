@@ -2204,6 +2204,16 @@ class SessionDB(SessionSearchMixin, SessionSchemaMixin, SessionPortabilityMixin)
         self._read_local.conn = conn
         return conn
 
+    def release_current_thread_read_connection(self) -> None:
+        """Close and unregister the current thread's read connection."""
+        conn = getattr(self._read_local, "conn", None)
+        if conn is None:
+            return
+        self._read_local.conn = None
+        with self._read_conns_lock:
+            self._read_conns.discard(conn)
+        conn.close()
+
     @contextmanager
     def _read_ctx(self):
         """Yield a connection for read-only statements.
