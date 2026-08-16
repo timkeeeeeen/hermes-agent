@@ -7719,6 +7719,9 @@ class AIAgent:
                         reset_accounting_context(acct_token)
                     if token is not None:
                         reset_conversation_context(token)
+                    session_db = getattr(self, "_session_db", None)
+                    if session_db is not None:
+                        session_db.release_current_thread_read_connection()
 
     def chat(self, message: str, stream_callback: Optional[callable] = None) -> str:
         """

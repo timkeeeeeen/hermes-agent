@@ -2618,6 +2618,8 @@ class TestRunConversation:
         agent.save_trajectories = False
 
     def test_task_start_failure_closes_relay_turn_and_lease(self, agent):
+        session_db = MagicMock()
+        agent._session_db = session_db
         relay_lease = SimpleNamespace(
             parent_session_id="",
             profile_key="/profile",
@@ -2659,6 +2661,7 @@ class TestRunConversation:
             outcome="failed",
         )
         coordinator.release_conversation.assert_called_once_with(relay_lease)
+        session_db.release_current_thread_read_connection.assert_called_once_with()
         assert agent._relay_pending_turn_id is None
 
     def test_stop_finish_reason_returns_response(self, agent):
@@ -5923,4 +5926,3 @@ class TestMemoryContextSanitization:
         assert "memory-context" not in result.lower()
         assert "stale observation" not in result
         assert "how is the honcho working" in result
-
